@@ -13,7 +13,38 @@ import {
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTableImport from 'jspdf-autotable';
+const autoTable = (doc, options) => {
+  if (options) {
+    if (options.body && Array.isArray(options.body)) {
+      options.body = options.body.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+    if (options.head && Array.isArray(options.head)) {
+      options.head = options.head.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+  }
+  autoTableImport(doc, options);
+};
 
 function Dashboard() {
   const [stats, setStats] = useState({

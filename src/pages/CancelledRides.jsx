@@ -18,7 +18,38 @@ import {
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
-import autoTable from "jspdf-autotable";
+import autoTableImport from 'jspdf-autotable';
+const autoTable = (doc, options) => {
+  if (options) {
+    if (options.body && Array.isArray(options.body)) {
+      options.body = options.body.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+    if (options.head && Array.isArray(options.head)) {
+      options.head = options.head.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+  }
+  autoTableImport(doc, options);
+};
 
 function CancelledRides() {
     const [rides, setRides] = useState([]);
@@ -148,17 +179,29 @@ function CancelledRides() {
         const doc = new jsPDF("p", "mm", "a4");
         const date = new Date().toLocaleString();
 
-        doc.setFillColor(41, 98, 255);
-        doc.rect(0, 0, 210, 22, "F");
-        doc.setTextColor(255);
-        doc.setFontSize(16);
-        doc.text("Cancelled Rides Report", 105, 11, { align: "center" });
-        doc.setFontSize(9);
-        doc.text(`Generated: ${date}`, 105, 17, { align: "center" });
+        // Premium PDF Header
+    doc.setFillColor(79, 70, 229); // Modern Indigo
+    doc.rect(0, 0, 210, 26, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("Dump & Drop", 14, 18);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Cancelled Rides Report", 196, 18, { align: "right" });
+    
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${date}`, 14, 36);
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.5);
+    doc.line(14, 42, 196, 42);
 
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
-        doc.text("Statistics Summary", 14, 35);
+        doc.text("Statistics Summary", 14, 52);
 
         const statsData = [
             ["Total Cancelled Rides", stats.total],
@@ -170,13 +213,14 @@ function CancelledRides() {
         ];
 
         autoTable(doc, {
-            startY: 42,
+            startY: 56,
             body: statsData,
             theme: "grid",
-            styles: { fontSize: 10, cellPadding: 4 },
+            styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
+            alternateRowStyles: { fillColor: [252, 252, 252] },
             columnStyles: {
-                0: { fontStyle: "bold", cellWidth: 80 },
-                1: { halign: "right", cellWidth: 80 }
+                0: { fontStyle: "bold", textColor: [30, 30, 30], cellWidth: 80 },
+                1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229], cellWidth: 80 }
             }
         });
 
@@ -206,23 +250,25 @@ function CancelledRides() {
             body: tableData,
             theme: "striped",
             styles: { fontSize: 7.5, cellPadding: 2.5, valign: "middle" },
-            headStyles: { fillColor: [41, 98, 255], textColor: 255, halign: "center", fontStyle: "bold" },
-            columnStyles: {
-                0: { cellWidth: 10, halign: "center" },
-                1: { cellWidth: 18 },
-                2: { cellWidth: 12, halign: "center" },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 25 },
+            headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
+                        columnStyles: {
+                0: { cellWidth: 7, halign: "center" },
+                1: { cellWidth: 14, halign: "center" },
+                2: { cellWidth: 10, halign: "center" },
+                3: { cellWidth: 18 },
+                4: { cellWidth: 18 },
                 5: { cellWidth: 35 },
-                6: { cellWidth: 18, halign: "right" },
-                7: { cellWidth: 22, halign: "right" },
-                8: { cellWidth: 20, halign: "center" },
-                9: { cellWidth: 20, halign: "center" }
+                6: { cellWidth: 16, halign: "right" },
+                7: { cellWidth: 20, halign: "right" },
+                8: { cellWidth: 18, halign: "center" },
+                9: { cellWidth: 16, halign: "center" }
             },
-            didDrawPage: () => {
-                doc.setFontSize(8);
-                doc.setTextColor(150);
-                doc.text(`Page ${doc.internal.getNumberOfPages()}`, 200, 290, { align: "right" });
+            didDrawPage: (data) => {
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text("Dump & Drop Admin Portal", 14, 287);
+        const pageNumber = doc.internal.getCurrentPageInfo ? doc.internal.getCurrentPageInfo().pageNumber : data.pageNumber;
+        doc.text(`Page ${pageNumber}`, 196, 287, { align: "right" });
             }
         });
 

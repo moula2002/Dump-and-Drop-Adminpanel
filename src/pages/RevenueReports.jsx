@@ -35,7 +35,38 @@ import {
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
-import autoTable from "jspdf-autotable";
+import autoTableImport from 'jspdf-autotable';
+const autoTable = (doc, options) => {
+  if (options) {
+    if (options.body && Array.isArray(options.body)) {
+      options.body = options.body.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+    if (options.head && Array.isArray(options.head)) {
+      options.head = options.head.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+  }
+  autoTableImport(doc, options);
+};
 
 function RevenueReports() {
     const [loading, setLoading] = useState(true);
@@ -150,13 +181,25 @@ function RevenueReports() {
         const date = new Date().toLocaleString();
         const pageWidth = doc.internal.pageSize.getWidth();
 
-        doc.setFillColor(41, 98, 255);
-        doc.rect(0, 0, pageWidth, 22, "F");
-        doc.setTextColor(255);
-        doc.setFontSize(16);
-        doc.text("Revenue Report", pageWidth / 2, 11, { align: "center" });
-        doc.setFontSize(9);
-        doc.text(`Generated: ${date}`, pageWidth / 2, 17, { align: "center" });
+        // Premium PDF Header
+    doc.setFillColor(79, 70, 229); // Modern Indigo
+    doc.rect(0, 0, 210, 26, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("Dump & Drop", 14, 18);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Revenue Report", 196, 18, { align: "right" });
+    
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${date}`, 14, 36);
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.5);
+    doc.line(14, 42, 196, 42);
         doc.text(`Period: ${period.toUpperCase()}`, pageWidth / 2, 21, { align: "center" });
 
         doc.setTextColor(0, 0, 0);
@@ -179,10 +222,11 @@ function RevenueReports() {
             startY: yPos,
             body: summaryData,
             theme: "grid",
-            styles: { fontSize: 10, cellPadding: 4 },
+            styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
+            alternateRowStyles: { fillColor: [252, 252, 252] },
             columnStyles: {
-                0: { fontStyle: "bold", cellWidth: 70 },
-                1: { halign: "right", cellWidth: 70 }
+                0: { fontStyle: "bold", textColor: [30, 30, 30] },
+                1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229], cellWidth: 70 }
             }
         });
         yPos = doc.lastAutoTable.finalY + 10;
@@ -208,7 +252,7 @@ function RevenueReports() {
             head: [["Service", "Revenue", "Percentage"]],
             body: breakdownData,
             theme: "striped",
-            headStyles: { fillColor: [41, 98, 255], textColor: 255 },
+            headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
             styles: { fontSize: 10, cellPadding: 4 }
         });
         yPos = doc.lastAutoTable.finalY + 10;
@@ -234,7 +278,7 @@ function RevenueReports() {
                 head: [["Period", "Revenue", "Rides"]],
                 body: trendData,
                 theme: "striped",
-                headStyles: { fillColor: [41, 98, 255], textColor: 255 },
+                headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
                 styles: { fontSize: 9, cellPadding: 3 }
             });
         }

@@ -13,6 +13,7 @@ function Header({ sidebarOpen, setSidebarOpen, adminUser, onLogout }) {
   const dropdownRef = useRef(null);
   const popupTimeoutRef = useRef(null);
   const lastNotificationIdsRef = useRef(new Set()); // Store already shown notification IDs
+  const isInitialLoadRef = useRef(true);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -62,19 +63,29 @@ function Header({ sidebarOpen, setSidebarOpen, adminUser, onLogout }) {
       
       // Show popup for each new notification (only once)
       if (newNotifications.length > 0) {
-        newNotifications.forEach(notif => {
-          // Mark as shown
-          lastNotificationIdsRef.current.add(notif._id);
-          
-          // Show popup
-          showPopup(notif);
-          
-          // Also show toast
-          toast.success(notif.title, {
-            duration: 5000,
-            position: 'top-right',
+        if (isInitialLoadRef.current) {
+          // On first load, just mark all current unread notifications as shown without displaying toasts/popups
+          newNotifications.forEach(notif => {
+            lastNotificationIdsRef.current.add(notif._id);
           });
-        });
+          isInitialLoadRef.current = false;
+        } else {
+          newNotifications.forEach(notif => {
+            // Mark as shown
+            lastNotificationIdsRef.current.add(notif._id);
+            
+            // Show popup
+            showPopup(notif);
+            
+            // Also show toast
+            toast.success(notif.title, {
+              duration: 5000,
+              position: 'top-right',
+            });
+          });
+        }
+      } else if (isInitialLoadRef.current) {
+        isInitialLoadRef.current = false;
       }
       
       setNotifications(notificationsList);

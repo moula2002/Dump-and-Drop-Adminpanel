@@ -12,7 +12,38 @@ import {
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
-import autoTable from "jspdf-autotable";
+import autoTableImport from 'jspdf-autotable';
+const autoTable = (doc, options) => {
+  if (options) {
+    if (options.body && Array.isArray(options.body)) {
+      options.body = options.body.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+    if (options.head && Array.isArray(options.head)) {
+      options.head = options.head.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+  }
+  autoTableImport(doc, options);
+};
 
 // Helper function for full number format - NO abbreviations
 const formatFullNumber = (amount) => {
@@ -84,13 +115,25 @@ function DriverProfile() {
     const doc = new jsPDF("p", "mm", "a4");
     const date = new Date().toLocaleString();
 
-    doc.setFillColor(41, 98, 255);
-    doc.rect(0, 0, 210, 22, "F");
-    doc.setTextColor(255);
-    doc.setFontSize(16);
-    doc.text("Driver Profile Report", 105, 11, { align: "center" });
-    doc.setFontSize(9);
-    doc.text(`Generated: ${date}`, 105, 17, { align: "center" });
+    // Premium PDF Header
+    doc.setFillColor(79, 70, 229); // Modern Indigo
+    doc.rect(0, 0, 210, 26, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("Dump & Drop", 14, 18);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Driver Profile Report", 196, 18, { align: "right" });
+    
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${date}`, 14, 36);
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.5);
+    doc.line(14, 42, 196, 42);
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
@@ -103,20 +146,21 @@ function DriverProfile() {
       ["Address", getAddress()],
       ["Status", getStatus()],
       ["Total Rides", getTotalRides()],
-      ["Total Earnings", `${Math.round(getTotalEarnings()).toLocaleString('en-IN')}`],
-      ["Today's Earnings", `${Math.round(getValue(driver.todayEarnings, 0)).toLocaleString('en-IN')}`],
-      ["Monthly Earnings", `${Math.round(getValue(driver.monthlyEarnings, 0)).toLocaleString('en-IN')}`],
+      ["Total Earnings", `Rs. ${Math.round(getTotalEarnings()).toLocaleString('en-IN')}`],
+      ["Today's Earnings", `Rs. ${Math.round(getValue(driver.todayEarnings, 0)).toLocaleString('en-IN')}`],
+      ["Monthly Earnings", `Rs. ${Math.round(getValue(driver.monthlyEarnings, 0)).toLocaleString('en-IN')}`],
     ];
 
     autoTable(doc, {
-      startY: 42,
+      startY: 56,
       body: personalInfo,
       theme: "grid",
-      styles: { fontSize: 10, cellPadding: 4 },
-      columnStyles: {
-        0: { fontStyle: "bold", cellWidth: 70 },
-        1: { cellWidth: 100 },
-      },
+            styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
+            alternateRowStyles: { fillColor: [252, 252, 252] },
+            columnStyles: {
+                0: { fontStyle: "bold", textColor: [30, 30, 30] },
+                1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229], cellWidth: 100 }
+            }
     });
 
     let yPos = doc.lastAutoTable.finalY + 10;
@@ -152,11 +196,12 @@ function DriverProfile() {
       startY: yPos,
       body: vehicleInfo,
       theme: "grid",
-      styles: { fontSize: 10, cellPadding: 4 },
-      columnStyles: {
-        0: { fontStyle: "bold", cellWidth: 70 },
-        1: { cellWidth: 100 },
-      },
+            styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
+            alternateRowStyles: { fillColor: [252, 252, 252] },
+            columnStyles: {
+                0: { fontStyle: "bold", textColor: [30, 30, 30] },
+                1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229], cellWidth: 100 }
+            }
     });
 
     if (driver.insuranceNumber) {
@@ -178,11 +223,12 @@ function DriverProfile() {
         startY: yPos,
         body: insuranceInfo,
         theme: "grid",
-        styles: { fontSize: 10, cellPadding: 4 },
-        columnStyles: {
-          0: { fontStyle: "bold", cellWidth: 70 },
-          1: { cellWidth: 100 },
-        },
+            styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
+            alternateRowStyles: { fillColor: [252, 252, 252] },
+            columnStyles: {
+                0: { fontStyle: "bold", textColor: [30, 30, 30] },
+                1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229], cellWidth: 100 }
+            }
       });
     }
 
@@ -211,11 +257,12 @@ function DriverProfile() {
         startY: yPosPage2,
         body: licenseInfo,
         theme: "grid",
-        styles: { fontSize: 10, cellPadding: 4 },
-        columnStyles: {
-          0: { fontStyle: "bold", cellWidth: 70 },
-          1: { cellWidth: 100 },
-        },
+            styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
+            alternateRowStyles: { fillColor: [252, 252, 252] },
+            columnStyles: {
+                0: { fontStyle: "bold", textColor: [30, 30, 30] },
+                1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229], cellWidth: 100 }
+            }
       });
     }
 

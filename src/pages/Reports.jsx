@@ -25,7 +25,39 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTableImport from 'jspdf-autotable';
+
+const autoTable = (doc, options) => {
+  if (options) {
+    if (options.body && Array.isArray(options.body)) {
+      options.body = options.body.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+    if (options.head && Array.isArray(options.head)) {
+      options.head = options.head.map(row => {
+        if (Array.isArray(row)) {
+          return row.map(cell => {
+            if (typeof cell === 'string') {
+              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+            }
+            return cell;
+          });
+        }
+        return row;
+      });
+    }
+  }
+  autoTableImport(doc, options);
+};
 
 function Reports() {
   const [reportType, setReportType] = useState('revenue');
@@ -152,29 +184,36 @@ function Reports() {
     if (!exportData || !exportData.report) return;
 
     const rep = exportData.report;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 20;
+    const doc = new jsPDF("p", "mm", "a4");
+    const date = new Date().toLocaleString();
 
-    // Title
-    doc.setFontSize(20);
-    doc.setTextColor(33, 33, 33);
-    doc.text(`${reportType.toUpperCase()} REPORT`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 10;
-
-    // Date range
-    doc.setFontSize(10);
+    // Premium PDF Header
+    doc.setFillColor(79, 70, 229); // Modern Indigo
+    doc.rect(0, 0, 210, 26, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("Dump & Drop", 14, 18);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${reportType.toUpperCase()} REPORT`, 196, 18, { align: "right" });
+    
     doc.setTextColor(100, 100, 100);
-    doc.text(`Period: ${startDate} to ${endDate}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 6;
-    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
+    doc.setFontSize(10);
+    doc.text(`Period: ${startDate} to ${endDate}`, 14, 38);
+    doc.text(`Generated on: ${date}`, 14, 44);
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.5);
+    doc.line(14, 48, 196, 48);
+    let yPos = 56;
 
     // Summary Section
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setTextColor(33, 33, 33);
     doc.text('Summary', 14, yPos);
-    yPos += 8;
+    yPos += 6;
 
     let summaryData = [];
     if (reportType === 'revenue') {
@@ -209,32 +248,25 @@ function Reports() {
       ];
     }
 
-    // Use autoTable if available, otherwise use simple text
-    if (typeof doc.autoTable === 'function') {
-      doc.autoTable({
-        startY: yPos,
-        head: [['Metric', 'Value']],
-        body: summaryData,
-        theme: 'striped',
-        headStyles: { fillColor: [59, 130, 246] },
-        margin: { left: 14 }
-      });
-      yPos = doc.lastAutoTable.finalY + 10;
-    } else {
-      // Fallback without autoTable
-      doc.setFontSize(10);
-      summaryData.forEach(row => {
-        doc.text(`${row[0]}: ${row[1]}`, 14, yPos);
-        yPos += 7;
-      });
-      yPos += 5;
-    }
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Metric', 'Value']],
+      body: summaryData,
+      theme: 'striped',
+      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
+      margin: { left: 14, right: 14 }
+    });
+    yPos = doc.lastAutoTable.finalY + 10;
 
     // Breakdown Section
     if (rep.breakdown && rep.breakdown.length > 0) {
-      doc.setFontSize(14);
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.setFontSize(12);
       doc.text('Breakdown', 14, yPos);
-      yPos += 8;
+      yPos += 6;
 
       const breakdownData = rep.breakdown.map(item => [
         item.name,
@@ -242,63 +274,39 @@ function Reports() {
         `${item.percentage?.toFixed(2) || 0}%`
       ]);
 
-      if (typeof doc.autoTable === 'function') {
-        doc.autoTable({
-          startY: yPos,
-          head: [['Category', 'Value', 'Percentage']],
-          body: breakdownData,
-          theme: 'striped',
-          headStyles: { fillColor: [59, 130, 246] },
-          margin: { left: 14 }
-        });
-        yPos = doc.lastAutoTable.finalY + 10;
-      } else {
-        doc.setFontSize(10);
-        breakdownData.forEach(row => {
-          doc.text(`${row[0]}: ${row[1]} (${row[2]})`, 14, yPos);
-          yPos += 7;
-        });
-        yPos += 5;
-      }
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Category', 'Value', 'Percentage']],
+        body: breakdownData,
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
+        margin: { left: 14, right: 14 }
+      });
+      yPos = doc.lastAutoTable.finalY + 10;
     }
 
     // Detailed Data Section
     if (rep.details && rep.details.length > 0) {
-      if (yPos > 200) {
+      if (yPos > 240) {
         doc.addPage();
         yPos = 20;
       }
 
-      doc.setFontSize(14);
+      doc.setFontSize(12);
       doc.text('Detailed Data', 14, yPos);
-      yPos += 8;
+      yPos += 6;
 
       const headers = Object.keys(rep.details[0]);
       const body = rep.details.map(row => Object.values(row));
 
-      if (typeof doc.autoTable === 'function') {
-        doc.autoTable({
-          startY: yPos,
-          head: [headers],
-          body: body,
-          theme: 'striped',
-          headStyles: { fillColor: [59, 130, 246] },
-          margin: { left: 14 }
-        });
-      } else {
-        doc.setFontSize(8);
-        // Print headers
-        let headerText = headers.join(' | ');
-        doc.text(headerText.substring(0, 80), 14, yPos);
-        yPos += 6;
-        
-        // Print rows
-        body.slice(0, 20).forEach(row => {
-          let rowText = row.join(' | ');
-          doc.text(rowText.substring(0, 80), 14, yPos);
-          yPos += 5;
-        });
-      }
+      autoTable(doc, {
+        startY: yPos,
+        head: [headers],
+        body: body,
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
+        margin: { left: 14, right: 14 }
+      });
     }
 
     doc.save(`${reportType}_report_${startDate}_to_${endDate}.pdf`);
