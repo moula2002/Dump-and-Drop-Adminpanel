@@ -21,35 +21,35 @@ import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTableImport from 'jspdf-autotable';
 const autoTable = (doc, options) => {
-  if (options) {
-    if (options.body && Array.isArray(options.body)) {
-      options.body = options.body.map(row => {
-        if (Array.isArray(row)) {
-          return row.map(cell => {
-            if (typeof cell === 'string') {
-              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
-            }
-            return cell;
-          });
+    if (options) {
+        if (options.body && Array.isArray(options.body)) {
+            options.body = options.body.map(row => {
+                if (Array.isArray(row)) {
+                    return row.map(cell => {
+                        if (typeof cell === 'string') {
+                            return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+                        }
+                        return cell;
+                    });
+                }
+                return row;
+            });
         }
-        return row;
-      });
-    }
-    if (options.head && Array.isArray(options.head)) {
-      options.head = options.head.map(row => {
-        if (Array.isArray(row)) {
-          return row.map(cell => {
-            if (typeof cell === 'string') {
-              return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
-            }
-            return cell;
-          });
+        if (options.head && Array.isArray(options.head)) {
+            options.head = options.head.map(row => {
+                if (Array.isArray(row)) {
+                    return row.map(cell => {
+                        if (typeof cell === 'string') {
+                            return cell.replace(/→/g, '->').replace(/₹/g, 'Rs. ').replace(/\.00\b/g, '');
+                        }
+                        return cell;
+                    });
+                }
+                return row;
+            });
         }
-        return row;
-      });
     }
-  }
-  autoTableImport(doc, options);
+    autoTableImport(doc, options);
 };
 
 function AllBookings() {
@@ -253,24 +253,24 @@ function AllBookings() {
         const date = new Date().toLocaleString();
 
         // Premium PDF Header
-    doc.setFillColor(79, 70, 229); // Modern Indigo
-    doc.rect(0, 0, 210, 26, "F");
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text("Dump & Drop", 14, 18);
-    
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text("All Bookings Report", 196, 18, { align: "right" });
-    
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${date}`, 14, 36);
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.5);
-    doc.line(14, 42, 196, 42);
+        doc.setFillColor(79, 70, 229); // Modern Indigo
+        doc.rect(0, 0, 210, 26, "F");
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont("helvetica", "bold");
+        doc.text("Dump & Drop", 14, 18);
+
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "normal");
+        doc.text("All Bookings Report", 196, 18, { align: "right" });
+
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${date}`, 14, 36);
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.5);
+        doc.line(14, 42, 196, 42);
 
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
@@ -350,14 +350,14 @@ function AllBookings() {
                 8: { cellWidth: 18, halign: "center" },
             },
             didDrawPage: (data) => {
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text("Dump & Drop Admin Portal", 14, 287);
-        const pageNumber = doc.internal.getCurrentPageInfo ? doc.internal.getCurrentPageInfo().pageNumber : data.pageNumber;
-        doc.text(`Page ${pageNumber}`, 196, 287, { align: "right" });
-      
-              }
-    });
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text("Dump & Drop Admin Portal", 14, 287);
+                const pageNumber = doc.internal.getCurrentPageInfo ? doc.internal.getCurrentPageInfo().pageNumber : data.pageNumber;
+                doc.text(`Page ${pageNumber}`, 196, 287, { align: "right" });
+
+            }
+        });
 
         doc.save(`all_bookings_report_${new Date().toISOString().split("T")[0]}.pdf`);
         toast.success("PDF downloaded successfully");
@@ -561,9 +561,9 @@ function AllBookings() {
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">No</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer / Passengers</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer / MOBILE</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Route Details</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Driver / MOBILE</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>

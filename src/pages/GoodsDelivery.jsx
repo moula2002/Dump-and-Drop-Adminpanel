@@ -83,16 +83,16 @@ function GoodsDelivery() {
     // Premium PDF Header
     doc.setFillColor(79, 70, 229); // Modern Indigo
     doc.rect(0, 0, 210, 26, "F");
-    
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text("Dump & Drop", 14, 18);
-    
+
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
     doc.text("Goods Delivery Report", 196, 18, { align: "right" });
-    
+
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(10);
     doc.text(`Generated on: ${date}`, 14, 36);
@@ -119,12 +119,12 @@ function GoodsDelivery() {
       startY,
       body: statsData,
       theme: "grid",
-            styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
-            alternateRowStyles: { fillColor: [252, 252, 252] },
-            columnStyles: {
-                0: { fontStyle: "bold", textColor: [30, 30, 30] },
-                1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229] }
-            }
+      styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
+      alternateRowStyles: { fillColor: [252, 252, 252] },
+      columnStyles: {
+        0: { fontStyle: "bold", textColor: [30, 30, 30] },
+        1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229] }
+      }
     });
 
     const tableData = filteredDeliveries.map((d) => [
@@ -133,25 +133,27 @@ function GoodsDelivery() {
       `${getDriverName(d)}\n${getDriverPhone(d)}`,
       `${getFromLocation(d)}\n→\n${getToLocation(d)}`,
       `${getVehicleType(d)}\n${getGoodsType(d)}\n${getGoodsWeight(d)}`,
+      getBookingCapacity(d),
       `₹${getFare(d)}`,
       getStatusLabel(d.status),
     ]);
 
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 10,
-      head: [["ID", "Customer / Mobile", "Driver / Mobile", "Pickup → Drop", "Vehicle / Goods", "Amount", "Status"]],
+      head: [["ID", "Customer / Mobile", "Driver / Mobile", "Pickup → Drop", "Vehicle / Goods", "Capacity", "Amount", "Status"]],
       body: tableData,
       theme: "striped",
       styles: { fontSize: 8, cellPadding: 3, valign: "middle" },
       headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
-            columnStyles: {
+      columnStyles: {
         0: { cellWidth: 14, halign: "center" },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 28 },
-        3: { cellWidth: 35 },
-        4: { cellWidth: 28 },
-        5: { cellWidth: 16, halign: "right" },
-        6: { cellWidth: 18, halign: "center" },
+        1: { cellWidth: 26 },
+        2: { cellWidth: 26 },
+        3: { cellWidth: 32 },
+        4: { cellWidth: 26 },
+        5: { cellWidth: 16, halign: "center" },
+        6: { cellWidth: 16, halign: "right" },
+        7: { cellWidth: 16, halign: "center" },
       },
       didDrawPage: (data) => {
         doc.setFontSize(8);
@@ -159,8 +161,8 @@ function GoodsDelivery() {
         doc.text("Dump & Drop Admin Portal", 14, 287);
         const pageNumber = doc.internal.getCurrentPageInfo ? doc.internal.getCurrentPageInfo().pageNumber : data.pageNumber;
         doc.text(`Page ${pageNumber}`, 196, 287, { align: "right" });
-      
-          }
+
+      }
     });
 
     doc.save(`goods_delivery_report_${new Date().toISOString().split("T")[0]}.pdf`);
@@ -202,6 +204,9 @@ function GoodsDelivery() {
     if (delivery.customer?.name) return delivery.customer.name;
     if (delivery.customerName) return delivery.customerName;
     if (delivery.customerId?.name) return delivery.customerId.name;
+    if (delivery.bookedPassengers?.length > 0 && delivery.bookedPassengers[0].name) {
+      return delivery.bookedPassengers[0].name;
+    }
     return 'N/A';
   };
 
@@ -209,19 +214,27 @@ function GoodsDelivery() {
     if (delivery.customer?.phone) return delivery.customer.phone;
     if (delivery.customerPhone) return delivery.customerPhone;
     if (delivery.customerId?.phone) return delivery.customerId.phone;
+    if (delivery.bookedPassengers?.length > 0 && delivery.bookedPassengers[0].phone) {
+      return delivery.bookedPassengers[0].phone;
+    }
     return '';
   };
 
   const getFromLocation = (delivery) => {
-    return delivery.from || delivery.fromCity || delivery.pickupLocation?.address || 'N/A';
+    return delivery.fromLocation?.address || delivery.from || delivery.fromCity || delivery.pickupLocation?.address || 'N/A';
   };
 
   const getToLocation = (delivery) => {
-    return delivery.to || delivery.toCity || delivery.dropLocation?.address || 'N/A';
+    return delivery.toLocation?.address || delivery.to || delivery.toCity || delivery.dropLocation?.address || 'N/A';
   };
 
   const getFare = (delivery) => {
-    return delivery.fare || delivery.price || delivery.amount || 0;
+    if (delivery.fare) return delivery.fare;
+    if (delivery.price) return delivery.price;
+    if (delivery.amount) return delivery.amount;
+    if (delivery.pricePerSeat) return delivery.pricePerSeat;
+    if (delivery.pricePerKm && delivery.estimatedDistance) return (delivery.pricePerKm * delivery.estimatedDistance).toFixed(2);
+    return 0;
   };
 
   const getVehicleType = (delivery) => {
@@ -231,14 +244,23 @@ function GoodsDelivery() {
   const getGoodsType = (delivery) => {
     if (delivery.goods?.type) return delivery.goods.type;
     if (delivery.packageType) return delivery.packageType;
-    return 'N/A';
+    return 'Goods Truck';
   };
 
   const getGoodsWeight = (delivery) => {
     if (delivery.goods?.weight) return delivery.goods.weight;
     if (delivery.weight) return `${delivery.weight}`;
     if (delivery.packageWeight) return `${delivery.packageWeight} kg`;
+    if (delivery.totalCapacity !== undefined) return `${delivery.totalCapacity} Tons`;
     return 'N/A';
+  };
+
+  const getBookingCapacity = (delivery) => {
+    if (delivery.totalCapacity !== undefined && delivery.availableCapacity !== undefined) {
+      const booked = delivery.totalCapacity - delivery.availableCapacity;
+      return `${booked} / ${delivery.totalCapacity} Tons`;
+    }
+    return '-';
   };
 
   const getDriverName = (delivery) => {
@@ -276,7 +298,7 @@ function GoodsDelivery() {
     ongoing: deliveries.filter(d => d.status?.toLowerCase() === 'ongoing').length,
     completed: deliveries.filter(d => d.status?.toLowerCase() === 'completed').length,
     cancelled: deliveries.filter(d => d.status?.toLowerCase() === 'cancelled').length,
-    totalAmount: deliveries.reduce((sum, d) => sum + getFare(d), 0)
+    totalAmount: deliveries.reduce((sum, d) => sum + parseFloat(getFare(d) || 0), 0)
   };
 
   if (loading) {
@@ -385,6 +407,7 @@ function GoodsDelivery() {
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver / Mobile</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pickup → Drop</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle / Goods</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capacity</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
@@ -393,7 +416,7 @@ function GoodsDelivery() {
             <tbody className="divide-y divide-gray-100">
               {filteredDeliveries.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-5 py-10 text-center text-gray-500">
+                  <td colSpan="9" className="px-5 py-10 text-center text-gray-500">
                     No deliveries found
                   </td>
                 </tr>
@@ -427,6 +450,11 @@ function GoodsDelivery() {
                         <p className="text-sm font-semibold text-gray-900">{getVehicleType(delivery)}</p>
                         <p className="text-xs text-gray-500">{getGoodsType(delivery)} - {getGoodsWeight(delivery)}</p>
                       </div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
+                        {getBookingCapacity(delivery)}
+                      </span>
                     </td>
                     <td className="px-5 py-3 text-sm font-semibold text-gray-900">₹{getFare(delivery)}</td>
                     <td className="px-5 py-3">{getStatusBadge(delivery.status)}</td>
@@ -527,7 +555,8 @@ function GoodsDelivery() {
                 <div className="space-y-1">
                   <p className="text-sm"><span className="text-gray-500">Vehicle Type:</span> {getVehicleType(selectedDelivery)}</p>
                   <p className="text-sm"><span className="text-gray-500">Goods Type:</span> {getGoodsType(selectedDelivery)}</p>
-                  <p className="text-sm"><span className="text-gray-500">Weight:</span> {getGoodsWeight(selectedDelivery)}</p>
+                  <p className="text-sm"><span className="text-gray-500">Total Capacity:</span> {getGoodsWeight(selectedDelivery)}</p>
+                  <p className="text-sm"><span className="text-gray-500">Booked Capacity:</span> {getBookingCapacity(selectedDelivery)}</p>
                 </div>
               </div>
             </div>

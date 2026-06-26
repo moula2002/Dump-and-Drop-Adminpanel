@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Car, Truck, Eye, X, Download, RefreshCw, Search, Calendar, Clock, User, Phone, Hash, DollarSign, Calendar as CalIcon, TrendingUp } from 'lucide-react';
+import { Car, Truck, Eye, X, Download, RefreshCw, Search, Calendar, Clock, User, Phone, Hash, DollarSign, Calendar as CalIcon, TrendingUp, MapPin } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
@@ -44,6 +44,7 @@ function Rentals() {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [tripTypeFilter, setTripTypeFilter] = useState('all');
 
   useEffect(() => {
     fetchRentals();
@@ -51,7 +52,7 @@ function Rentals() {
 
   useEffect(() => {
     filterRentals();
-  }, [searchTerm, statusFilter, rentals]);
+  }, [searchTerm, statusFilter, tripTypeFilter, rentals]);
 
   const fetchRentals = async () => {
     setLoading(true);
@@ -73,6 +74,11 @@ function Rentals() {
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(rental => rental.status === statusFilter);
+    }
+
+    if (tripTypeFilter !== 'all') {
+      const isRoundTrip = tripTypeFilter === 'roundtrip';
+      filtered = filtered.filter(rental => (String(rental.isRoundTrip) === 'true') === isRoundTrip);
     }
 
     if (searchTerm) {
@@ -97,16 +103,16 @@ function Rentals() {
     // Premium PDF Header
     doc.setFillColor(79, 70, 229); // Modern Indigo
     doc.rect(0, 0, 210, 26, "F");
-    
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text("Dump & Drop", 14, 18);
-    
+
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
     doc.text("Rentals Report", 196, 18, { align: "right" });
-    
+
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(10);
     doc.text(`Generated on: ${date}`, 14, 36);
@@ -126,45 +132,45 @@ function Rentals() {
     ];
 
     autoTable(doc, {
-            startY: 56,
-            body: statsData,
-            theme: "grid",
-            styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
-            alternateRowStyles: { fillColor: [252, 252, 252] },
-            columnStyles: {
-                0: { fontStyle: "bold", textColor: [30, 30, 30], cellWidth: 80 },
-                1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229], cellWidth: 80 }
-            }
-        });
+      startY: 56,
+      body: statsData,
+      theme: "grid",
+      styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0.1, textColor: [60, 60, 60] },
+      alternateRowStyles: { fillColor: [252, 252, 252] },
+      columnStyles: {
+        0: { fontStyle: "bold", textColor: [30, 30, 30], cellWidth: 80 },
+        1: { halign: "right", fontStyle: "bold", textColor: [79, 70, 229], cellWidth: 80 }
+      }
+    });
 
     const tableData = filteredRentals.map((r, i) => [
       i + 1,
       r.vehicleNumber || "N/A",
       r.vehicleType === "cab" ? "Cab" : "Goods",
+      String(r.isRoundTrip) === 'true' ? "Round Trip" : "One Way",
       `${r.customerName || "N/A"}\n${r.customerNumber || ""}`,
       `${r.driverName || "Not assigned"}\n${r.driverNumber || ""}`,
       `${formatDate(r.startDate)}\n-> ${formatDate(r.endDate)}`,
-      `₹${r.cost || 0}`,
       r.counterOfferPrice ? `₹${r.counterOfferPrice}` : '-',
       (r.status || "pending").toUpperCase(),
     ]);
 
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 8,
-      head: [["No", "Vehicle", "Type", "Customer", "Driver", "Period", "Amount", "Counter Offer", "Status"]],
+      head: [["No", "Vehicle", "Type", "Trip", "Customer", "Driver", "Period", "Counter Offer", "Status"]],
       body: tableData,
       theme: "striped",
       styles: { fontSize: 7.5, cellPadding: 2.5, valign: "middle", overflow: "linebreak" },
       headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
-            columnStyles: {
+      columnStyles: {
         0: { cellWidth: 8, halign: "center" },
-        1: { cellWidth: 18 },
+        1: { cellWidth: 16 },
         2: { cellWidth: 12, halign: "center" },
-        3: { cellWidth: 22 },
-        4: { cellWidth: 22 },
-        5: { cellWidth: 34 },
-        6: { cellWidth: 16, halign: "right" },
-        7: { cellWidth: 18, halign: "right" },
+        3: { cellWidth: 16 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 32 },
+        7: { cellWidth: 16, halign: "right" },
         8: { cellWidth: 16, halign: "center" },
       },
       didDrawPage: (data) => {
@@ -173,8 +179,8 @@ function Rentals() {
         doc.text("Dump & Drop Admin Portal", 14, 287);
         const pageNumber = doc.internal.getCurrentPageInfo ? doc.internal.getCurrentPageInfo().pageNumber : data.pageNumber;
         doc.text(`Page ${pageNumber}`, 196, 287, { align: "right" });
-      
-          }
+
+      }
     });
 
     doc.save(`rentals_report_${new Date().toISOString().split("T")[0]}.pdf`);
@@ -317,8 +323,17 @@ function Rentals() {
             <option value="cancelled">Cancelled</option>
             <option value="rejected">Rejected</option>
           </select>
-          {(searchTerm || statusFilter !== 'all') && (
-            <button onClick={() => { setSearchTerm(''); setStatusFilter('all'); }} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition flex items-center gap-1">
+          <select
+            value={tripTypeFilter}
+            onChange={(e) => setTripTypeFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Trip Types</option>
+            <option value="roundtrip">Round Trip</option>
+            <option value="oneway">One Way</option>
+          </select>
+          {(searchTerm || statusFilter !== 'all' || tripTypeFilter !== 'all') && (
+            <button onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTripTypeFilter('all'); }} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition flex items-center gap-1">
               <X className="w-4 h-4" />
               Clear Filters
             </button>
@@ -334,10 +349,10 @@ function Rentals() {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">S.No</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle Number</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trip Details</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">From → To</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Counter Offer</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
@@ -361,6 +376,19 @@ function Rentals() {
                   </td>
                   <td className="px-4 py-3">
                     <div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${String(rental.isRoundTrip) === 'true' ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'}`}>
+                        {String(rental.isRoundTrip) === 'true' ? 'Round Trip' : 'One Way'}
+                      </span>
+                      {(rental.leavingFrom || rental.goingTo) && (
+                        <div className="mt-1 text-[11px] text-gray-500 max-w-[200px] truncate" title={`${rental.leavingFrom || 'N/A'} → ${rental.goingTo || 'N/A'}${String(rental.isRoundTrip) === 'true' ? ` → ${rental.leavingFrom || 'N/A'}` : ''}`}>
+                          {rental.leavingFrom || 'N/A'} → {rental.goingTo || 'N/A'}
+                          {String(rental.isRoundTrip) === 'true' && ` → ${rental.leavingFrom || 'N/A'}`}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div>
                       <p className="text-sm font-medium text-gray-900">{rental.customerName}</p>
                       <p className="text-xs text-gray-500">{rental.customerNumber}</p>
                     </div>
@@ -378,7 +406,6 @@ function Rentals() {
                     </div>
                     <p className="text-xs text-gray-400 mt-1">{rental.duration}</p>
                   </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-green-600">{formatCurrency(rental.cost)}</td>
                   <td className="px-4 py-3">
                     {rental.counterOfferPrice ? (
                       <span className="text-sm font-semibold text-orange-600">{formatCurrency(rental.counterOfferPrice)}</span>
@@ -436,6 +463,47 @@ function Rentals() {
                         {selectedRental.vehicleType === 'cab' ? 'Cab' : 'Goods'}
                       </span>
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Trip Details Section */}
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 border-b pb-2">
+                  <MapPin className="w-5 h-5 text-indigo-600" />
+                  Trip Details
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Trip Type</p>
+                    <p className="text-base font-semibold mt-1">
+                      <span className={`px-2 py-1 rounded-full text-xs ${String(selectedRental.isRoundTrip) === 'true' ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'}`}>
+                        {String(selectedRental.isRoundTrip) === 'true' ? 'Round Trip' : 'One Way'}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <p className="text-xs text-gray-500">Route</p>
+                    <div className="text-sm font-medium text-gray-900 mt-1 flex flex-col gap-1">
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
+                        <span className="leading-snug">{selectedRental.leavingFrom || 'Not specified'}</span>
+                      </div>
+                      <div className="w-0.5 h-3 bg-gray-300 ml-1"></div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></div>
+                        <span className="leading-snug">{selectedRental.goingTo || 'Not specified'}</span>
+                      </div>
+                      {String(selectedRental.isRoundTrip) === 'true' && (
+                        <>
+                          <div className="w-0.5 h-3 bg-gray-300 ml-1"></div>
+                          <div className="flex items-start gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
+                            <span className="leading-snug">{selectedRental.leavingFrom || 'Not specified'}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -516,15 +584,11 @@ function Rentals() {
                   <DollarSign className="w-5 h-5 text-green-600" />
                   Payment Details
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Total Amount</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedRental.cost)}</p>
-                  </div>
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <p className="text-xs text-gray-500">Counter Offer</p>
                     {selectedRental.counterOfferPrice ? (
-                      <p className="text-xl font-bold text-orange-600">{formatCurrency(selectedRental.counterOfferPrice)}</p>
+                      <p className="text-2xl font-bold text-orange-600">{formatCurrency(selectedRental.counterOfferPrice)}</p>
                     ) : (
                       <p className="text-gray-400">Not offered</p>
                     )}
