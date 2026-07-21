@@ -35,15 +35,15 @@ const menuItems = [
     items: [
       { path: '/cab-rides', name: 'Cab Rides', icon: Car },
       { path: '/goods-delivery', name: 'Goods Delivery', icon: Package },
-    //  { path: '/all-rides', name: 'All Rides', icon: ClipboardList },
+      //  { path: '/all-rides', name: 'All Rides', icon: ClipboardList },
       { path: '/rentals', name: 'Vehicle Rentals', icon: Calendar },
     ]
   },
   {
     category: "BOOKING & CANCELLATION",
     items: [
-     // { path: '/cancellation-requests', name: 'Cancellation Requests', icon: XCircle },
-     // { path: '/cancelled-orders', name: 'Cancelled Orders', icon: AlertCircle },
+      // { path: '/cancellation-requests', name: 'Cancellation Requests', icon: XCircle },
+      // { path: '/cancelled-orders', name: 'Cancelled Orders', icon: AlertCircle },
       { path: '/all-bookings', name: 'All Bookings', icon: Calendar },
       { path: '/cancelled-rides', name: 'Cancelled Rides', icon: XCircle },
     ]
@@ -52,10 +52,10 @@ const menuItems = [
     category: "FINANCIAL",
     items: [
       { path: '/commission-settings', name: 'Commission Settings', icon: DollarSign },
-      { path: '/payments', name: 'Payments', icon: CreditCard },
+      //  { path: '/payments', name: 'Payments', icon: CreditCard },
 
-      { path: '/payouts', name: 'Payouts', icon: CreditCard },
-    //  { path: '/revenue', name: 'Revenue Reports', icon: TrendingUp },
+      //  { path: '/payouts', name: 'Payouts', icon: CreditCard },
+      //  { path: '/revenue', name: 'Revenue Reports', icon: TrendingUp },
       { path: '/revenue-reports', name: 'Revenue Analytics', icon: TrendingUp },
     ]
   },
@@ -80,7 +80,7 @@ const menuItems = [
     items: [
       { path: '/reports', name: 'Reports', icon: FileText },
       { path: '/notifications', name: 'Notifications', icon: Bell },
-   //   { path: '/settings', name: 'Settings', icon: Settings },
+      //   { path: '/settings', name: 'Settings', icon: Settings },
     ]
   },
 ];
