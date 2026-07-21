@@ -109,7 +109,7 @@ function RevenueReports() {
                     totalPayout: response.data.summary?.totalPayout || 0,
                     totalRides: response.data.summary?.totalRides || 0,
                     avgRevenuePerRide: response.data.summary?.avgRevenuePerRide || 0,
-                    driverCommission: response.data.summary?.driverCommission || 80,
+                    driverCommission: response.data.summary?.driverCommission ?? 80,
                     growth: response.data.summary?.growth || 0
                 });
                 setBreakdown({

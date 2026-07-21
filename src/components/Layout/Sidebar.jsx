@@ -65,6 +65,7 @@ const menuItems = [
       { path: '/users', name: 'Customers', icon: Users },
       { path: '/drivers', name: 'Drivers', icon: UserCog },
       { path: '/driver-verification', name: 'Driver Verification', icon: Shield },
+      { path: '/password-resets', name: 'Password Resets', icon: Shield },
     ]
   },
   // {

@@ -33,6 +33,7 @@ import AllBookings from './pages/AllBookings';
 import RevenueReports from './pages/RevenueReports';
 import CancelledRides from './pages/CancelledRides';
 import Rentals from './pages/Rentals';
+import PasswordResets from './pages/PasswordResets';
 
 
 
@@ -390,6 +391,17 @@ function App() {
             <ProtectedRoute>
               <AdminLayout>
                 <Rentals />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/password-resets"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <PasswordResets />
               </AdminLayout>
             </ProtectedRoute>
           }

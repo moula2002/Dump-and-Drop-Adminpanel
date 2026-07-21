@@ -160,6 +160,9 @@ export const adminAPI = {
   // Rentals
   getRentalsList: () => api.get('/rentals-list'),
 
+  // Password Resets
+  getPasswordResetRequests: () => api.get('/password-resets'),
+  approvePasswordReset: (id) => api.put(`/password-resets/${id}/approve`),
 };
 
 export default api;

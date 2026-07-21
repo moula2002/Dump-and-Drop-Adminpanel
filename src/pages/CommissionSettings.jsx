@@ -4,7 +4,7 @@ import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 function CommissionSettings() {
-  const [commission, setCommission] = useState(80);
+  const [commission, setCommission] = useState();
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(80);
@@ -17,8 +17,9 @@ function CommissionSettings() {
   const fetchCommission = async () => {
     try {
       const response = await adminAPI.getDriverCommission();
-      setCommission(response.data.commission || 80);
-      setEditValue(response.data.commission || 80);
+      const fetchedCommission = response.data.commission !== undefined ? response.data.commission : 80;
+      setCommission(fetchedCommission);
+      setEditValue(fetchedCommission);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -59,10 +60,10 @@ function CommissionSettings() {
         <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Percent className="w-12 h-12 text-green-600" />
         </div>
-        
+
         <p className="text-gray-500 mb-2">Driver Commission (Common)</p>
         <p className="text-sm text-gray-400 mb-4">Same commission for Cab & Goods drivers</p>
-        
+
         {editing ? (
           <div className="mb-4">
             <input
@@ -79,7 +80,7 @@ function CommissionSettings() {
         ) : (
           <p className="text-6xl font-bold text-green-600 mb-4">{commission}%</p>
         )}
-        
+
         <div className="flex gap-3 justify-center mt-4">
           {editing ? (
             <>

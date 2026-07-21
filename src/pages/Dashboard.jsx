@@ -533,7 +533,7 @@ function Dashboard() {
               <h3 className="text-base font-semibold text-gray-800 mb-4">Ride Type Distribution</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <RePieChart>
-                  <Pie data={rideTypePieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={rideTypePieData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                     {rideTypePieData.map((entry, index) => (<Cell key={index} fill={entry.color} />))}
                   </Pie>
                   <Tooltip formatter={(value) => formatNumber(value)} />
@@ -549,7 +549,7 @@ function Dashboard() {
               <h3 className="text-base font-semibold text-gray-800 mb-4">Revenue Distribution</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <RePieChart>
-                  <Pie data={revenuePieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={revenuePieData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                     {revenuePieData.map((entry, index) => (<Cell key={index} fill={entry.color} />))}
                   </Pie>
                   <Tooltip formatter={(value) => formatCurrency(value)} />
@@ -565,7 +565,7 @@ function Dashboard() {
               <h3 className="text-base font-semibold text-gray-800 mb-4">Ride Status</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <RePieChart>
-                  <Pie data={rideStatusData} cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={rideStatusData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                     {rideStatusData.map((entry, index) => (<Cell key={index} fill={entry.color} />))}
                   </Pie>
                   <Tooltip formatter={(value) => formatNumber(value)} />
