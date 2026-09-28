@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
+import logoImage from '../../assets/DUMP.png';
 
 const menuItems = [
   {
@@ -119,13 +120,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         <div className="sticky top-0 z-10 bg-gray-900">
           <div className="flex h-16 items-center justify-between px-4 border-b border-gray-700">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg">
-                <Car className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <span className="text-white font-bold text-lg">Dump & Drop</span>
-                <p className="text-xs text-gray-400">Admin Panel</p>
-              </div>
+              <img src={logoImage} alt="Dump & Drop" className="h-10 object-contain bg-white p-1 rounded" />
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
