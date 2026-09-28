@@ -119,8 +119,8 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         {/* Logo */}
         <div className="sticky top-0 z-10 bg-gray-900">
           <div className="flex h-16 items-center justify-between px-4 border-b border-gray-700">
-            <div className="flex items-center gap-2">
-              <img src={logoImage} alt="Dump & Drop" className="h-10 object-contain bg-white p-1 rounded" />
+            <div className="flex items-center">
+              <img src={logoImage} alt="Dump & Drop" className="w-44 object-contain bg-white p-1.5 rounded-md" />
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
