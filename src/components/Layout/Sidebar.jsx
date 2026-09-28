@@ -118,8 +118,8 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
       `}>
         {/* Logo */}
         <div className="sticky top-0 z-10 bg-gray-900">
-          <div className="flex py-6 items-center justify-center border-b border-gray-700 relative">
-            <img src={logoImage} alt="Dump & Drop" className="w-48 h-auto object-contain drop-shadow-lg" />
+          <div className="flex py-4 items-center justify-center border-b border-gray-700 relative">
+            <img src={logoImage} alt="Dump & Drop" className="w-40 h-auto object-contain drop-shadow-md" />
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden absolute right-4 text-gray-400 hover:text-white"
