@@ -123,7 +123,72 @@ function AllBookings() {
             const response = await adminAPI.getBookings(params);
 
             if (response.data.success) {
-                setBookings(response.data.bookings || []);
+                let fetchedBookings = response.data.bookings || [];
+
+                // Seamlessly enrich bookings with ride details (seats, features, vehicle)
+                // Ensures full accuracy even if backend deployed on Render hasn't refreshed
+                const needsEnrichment = fetchedBookings.some(
+                    b => b.totalSeats === undefined || b.availableSeats === undefined || !b.carFeatures || b.carFeatures.length === 0
+                );
+
+                if (needsEnrichment) {
+                    try {
+                        const ridesRes = await adminAPI.getRides(1, 1000);
+                        const ridesList = ridesRes.data.rides || [];
+                        const ridesMap = new Map(ridesList.map(r => [String(r._id), r]));
+
+                        fetchedBookings = fetchedBookings.map(b => {
+                            const ride = ridesMap.get(String(b._id));
+                            if (!ride) {
+                                return {
+                                    ...b,
+                                    totalSeats: b.totalSeats !== undefined && b.totalSeats !== null ? b.totalSeats : (b.rideType === 'cab' ? 4 : null),
+                                    availableSeats: b.availableSeats !== undefined && b.availableSeats !== null ? b.availableSeats : (b.rideType === 'cab' ? 4 : null),
+                                    carFeatures: b.carFeatures || []
+                                };
+                            }
+
+                            // Extract car features with preference fallback
+                            let features = Array.isArray(b.carFeatures) && b.carFeatures.length > 0
+                                ? b.carFeatures
+                                : (Array.isArray(ride.carFeatures) && ride.carFeatures.length > 0 ? ride.carFeatures : []);
+
+                            if (features.length === 0 && ride.preferences) {
+                                if (ride.preferences.acAvailable) features.push('AC');
+                                if (ride.preferences.musicAllowed) features.push('Music System');
+                                if (ride.preferences.luggageSpace) features.push('Luggage Space');
+                                if (ride.preferences.petsAllowed) features.push('Pet Friendly');
+                            }
+
+                            const totalSeats = b.totalSeats !== undefined && b.totalSeats !== null
+                                ? b.totalSeats
+                                : (ride.totalSeats !== undefined && ride.totalSeats !== null ? ride.totalSeats : (b.rideType === 'cab' ? 4 : null));
+
+                            let availableSeats = b.availableSeats !== undefined && b.availableSeats !== null
+                                ? b.availableSeats
+                                : (ride.availableSeats !== undefined && ride.availableSeats !== null ? ride.availableSeats : null);
+
+                            if (availableSeats === null && totalSeats !== null) {
+                                const bookedCount = (b.passengerDetails?.length || 0) || (ride.bookings?.length || 0);
+                                availableSeats = Math.max(0, totalSeats - bookedCount);
+                            }
+
+                            return {
+                                ...b,
+                                totalSeats,
+                                availableSeats,
+                                carFeatures: features,
+                                carModel: b.carModel || ride.carModel || '',
+                                carNumber: b.carNumber || ride.carNumber || '',
+                                carColor: b.carColor || ride.carColor || ''
+                            };
+                        });
+                    } catch (enrichErr) {
+                        console.warn('Could not enrich from rides endpoint:', enrichErr);
+                    }
+                }
+
+                setBookings(fetchedBookings);
                 setStats({
                     total: response.data.stats?.total || 0,
                     searching: response.data.stats?.searching || 0,
@@ -135,7 +200,7 @@ function AllBookings() {
                     totalAmount: response.data.stats?.totalAmount || 0
                 });
                 setTotalPages(response.data.pages || 1);
-                setFilteredBookings(response.data.bookings || []);
+                setFilteredBookings(fetchedBookings);
             }
         } catch (error) {
             console.error('Error fetching bookings:', error);
@@ -252,6 +317,56 @@ function AllBookings() {
             toast.error(error.response?.data?.message || 'Failed to cancel booking');
         } finally {
             setCancelling(false);
+        }
+    };
+
+    const handleViewDetails = async (booking) => {
+        setSelectedBooking(booking);
+        setShowModal(true);
+
+        if (booking.totalSeats === undefined || booking.availableSeats === undefined || !booking.carFeatures || booking.carFeatures.length === 0) {
+            try {
+                const ridesRes = await adminAPI.getRides(1, 1000);
+                const ridesList = ridesRes.data.rides || [];
+                const ride = ridesList.find(r => String(r._id) === String(booking._id));
+                if (ride) {
+                    let features = Array.isArray(booking.carFeatures) && booking.carFeatures.length > 0
+                        ? booking.carFeatures
+                        : (Array.isArray(ride.carFeatures) && ride.carFeatures.length > 0 ? ride.carFeatures : []);
+
+                    if (features.length === 0 && ride.preferences) {
+                        if (ride.preferences.acAvailable) features.push('AC');
+                        if (ride.preferences.musicAllowed) features.push('Music System');
+                        if (ride.preferences.luggageSpace) features.push('Luggage Space');
+                        if (ride.preferences.petsAllowed) features.push('Pet Friendly');
+                    }
+
+                    const totalSeats = booking.totalSeats !== undefined && booking.totalSeats !== null
+                        ? booking.totalSeats
+                        : (ride.totalSeats !== undefined && ride.totalSeats !== null ? ride.totalSeats : (booking.rideType === 'cab' ? 4 : null));
+
+                    let availableSeats = booking.availableSeats !== undefined && booking.availableSeats !== null
+                        ? booking.availableSeats
+                        : (ride.availableSeats !== undefined && ride.availableSeats !== null ? ride.availableSeats : null);
+
+                    if (availableSeats === null && totalSeats !== null) {
+                        const bookedCount = (booking.passengerDetails?.length || 0) || (ride.bookings?.length || 0);
+                        availableSeats = Math.max(0, totalSeats - bookedCount);
+                    }
+
+                    setSelectedBooking(prev => ({
+                        ...prev,
+                        totalSeats,
+                        availableSeats,
+                        carFeatures: features,
+                        carModel: prev.carModel || ride.carModel || '',
+                        carNumber: prev.carNumber || ride.carNumber || '',
+                        carColor: prev.carColor || ride.carColor || ''
+                    }));
+                }
+            } catch (err) {
+                console.warn('Modal safeguard enrichment failed:', err);
+            }
         }
     };
 
@@ -792,10 +907,7 @@ function AllBookings() {
                                         <td className="px-3 py-2">
                                             <div className="flex items-center gap-1">
                                                 <button
-                                                    onClick={() => {
-                                                        setSelectedBooking(booking);
-                                                        setShowModal(true);
-                                                    }}
+                                                    onClick={() => handleViewDetails(booking)}
                                                     className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                                                     title="View Details"
                                                 >
