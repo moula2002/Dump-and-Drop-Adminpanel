@@ -126,7 +126,7 @@ function DriverVerification() {
     if (url.startsWith('http://')) {
       url = url.replace('http://', 'https://');
     } else if (!url.startsWith('https://')) {
-      url = `https://dump-and-drop.onrender.com${url}`;
+      url = `https://dump-and-drop-server.onrender.com${url}`;
     }
     setCurrentImage({ url, name: documentName });
     setZoomLevel(1);
@@ -172,7 +172,7 @@ function DriverVerification() {
     if (url.startsWith('http://')) {
       url = url.replace('http://', 'https://');
     } else if (!url.startsWith('https://')) {
-      url = `https://dump-and-drop.onrender.com${url}`;
+      url = `https://dump-and-drop-server.onrender.com${url}`;
     }
     
     const link = document.createElement('a');
@@ -252,7 +252,7 @@ function DriverVerification() {
     if (url.startsWith('http://')) {
       return url.replace('http://', 'https://');
     } else if (!url.startsWith('https://')) {
-      return `https://dump-and-drop.onrender.com${url}`;
+      return `https://dump-and-drop-server.onrender.com${url}`;
     }
     return url;
   };
