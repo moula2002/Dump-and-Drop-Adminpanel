@@ -14,7 +14,9 @@ import {
     XCircle,
     Truck,
     Car,
-    AlertTriangle
+    AlertTriangle,
+    Users,
+    Sparkles
 } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
@@ -50,6 +52,28 @@ const autoTable = (doc, options) => {
         }
     }
     autoTableImport(doc, options);
+};
+
+export const parseCarFeatures = (features) => {
+    if (!features) return [];
+    if (Array.isArray(features)) {
+        return features.flatMap(f => typeof f === 'string' ? f.split(',').map(s => s.trim()) : [String(f)]).filter(Boolean);
+    }
+    if (typeof features === 'string') {
+        const trimmed = features.trim();
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    return parsed.flatMap(f => typeof f === 'string' ? f.split(',').map(s => s.trim()) : [String(f)]).filter(Boolean);
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return [];
 };
 
 function AllBookings() {
@@ -139,7 +163,13 @@ function AllBookings() {
                 mainRoute: 'Delhi → Gurgaon',
                 isRental: false,
                 startDate: null,
-                endDate: null
+                endDate: null,
+                totalSeats: 6,
+                availableSeats: 5,
+                carFeatures: ['AC'],
+                carModel: 'car car',
+                carNumber: 'car',
+                carColor: 'car'
             },
             {
                 _id: 'BOOK002',
@@ -173,7 +203,13 @@ function AllBookings() {
                 mainRoute: 'Ahmedabad → Vadodara',
                 isRental: true,
                 startDate: '2024-04-20',
-                endDate: '2024-04-25'
+                endDate: '2024-04-25',
+                totalSeats: 4,
+                availableSeats: 3,
+                carFeatures: ['AC', 'Music System'],
+                carModel: 'Sedan',
+                carNumber: 'DL 02 CD 5678',
+                carColor: 'White'
             }
         ];
         setBookings(mockBookings);
@@ -224,14 +260,24 @@ function AllBookings() {
 
         if (searchTerm.trim() !== '') {
             const searchLower = searchTerm.toLowerCase().trim();
-            filtered = filtered.filter(booking =>
-                (booking._id || '').toLowerCase().includes(searchLower) ||
-                (booking.customer?.name || '').toLowerCase().includes(searchLower) ||
-                (booking.customer?.phone || '').toLowerCase().includes(searchLower) ||
-                (booking.driver?.name || '').toLowerCase().includes(searchLower) ||
-                (booking.fromCity || '').toLowerCase().includes(searchLower) ||
-                (booking.toCity || '').toLowerCase().includes(searchLower)
-            );
+            filtered = filtered.filter(booking => {
+                const features = parseCarFeatures(booking.carFeatures);
+                const passengers = Array.isArray(booking.passengerDetails) ? booking.passengerDetails : [];
+                return (
+                    (booking._id || '').toLowerCase().includes(searchLower) ||
+                    (booking.customer?.name || '').toLowerCase().includes(searchLower) ||
+                    (booking.customer?.phone || '').toLowerCase().includes(searchLower) ||
+                    (booking.driver?.name || '').toLowerCase().includes(searchLower) ||
+                    (booking.driver?.phone || '').toLowerCase().includes(searchLower) ||
+                    (booking.fromCity || '').toLowerCase().includes(searchLower) ||
+                    (booking.toCity || '').toLowerCase().includes(searchLower) ||
+                    (booking.mainRoute || '').toLowerCase().includes(searchLower) ||
+                    (booking.carModel || '').toLowerCase().includes(searchLower) ||
+                    (booking.carNumber || '').toLowerCase().includes(searchLower) ||
+                    features.some(f => f.toLowerCase().includes(searchLower)) ||
+                    passengers.some(p => (p.name || '').toLowerCase().includes(searchLower) || (p.phone || '').includes(searchLower))
+                );
+            });
         }
 
         if (dateRange.start && dateRange.end) {
@@ -303,6 +349,13 @@ function AllBookings() {
             const isRental = booking.isRental || (booking.amount === 0 && booking.startDate && booking.endDate);
             const displayAmount = isRental ? (booking.rentalAmount || 0) : (booking.amount || 0);
 
+            const isCab = booking.rideType === 'cab' || booking.role === 'cab_ride';
+            const seatsText = isCab && (booking.totalSeats !== undefined && booking.totalSeats !== null)
+                ? `${booking.availableSeats !== undefined && booking.availableSeats !== null ? booking.availableSeats : '-'}/${booking.totalSeats}`
+                : '-';
+            const featuresList = parseCarFeatures(booking.carFeatures);
+            const featuresText = featuresList.length > 0 ? featuresList.join(', ') : '-';
+
             if (booking.rideType === 'cab') {
                 const passengerDetails = booking.passengerDetails || [];
                 return [
@@ -312,6 +365,8 @@ function AllBookings() {
                     passengerDetails.map(p => p.name).join('\n') || 'No passengers',
                     passengerDetails.map(p => p.route).join('\n') || '-',
                     booking.mainRoute || 'N/A',
+                    seatsText,
+                    featuresText,
                     `Rs. ${displayAmount.toLocaleString()}`,
                     new Date(booking.createdAt).toLocaleDateString(),
                     booking.status || 'N/A',
@@ -324,6 +379,8 @@ function AllBookings() {
                     booking.customer?.name || 'N/A',
                     `${booking.fromCity || 'N/A'} -> ${booking.toCity || 'N/A'}`,
                     '-',
+                    '-',
+                    '-',
                     `Rs. ${displayAmount.toLocaleString()}`,
                     new Date(booking.createdAt).toLocaleDateString(),
                     booking.status || 'N/A',
@@ -333,21 +390,23 @@ function AllBookings() {
 
         autoTable(doc, {
             startY: doc.lastAutoTable.finalY + 10,
-            head: [["No", "ID", "Type", "Customer/Passengers", "Route Details", "Main Route", "Amount", "Date", "Status"]],
+            head: [["No", "ID", "Type", "Customer/Passengers", "Route Details", "Main Route", "Seats", "Car Features", "Amount", "Date", "Status"]],
             body: tableData,
             theme: "striped",
-            styles: { fontSize: 6.5, cellPadding: 2, valign: "middle", overflow: "linebreak" },
+            styles: { fontSize: 6, cellPadding: 2, valign: "middle", overflow: "linebreak" },
             headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold", halign: "center" },
             columnStyles: {
-                0: { cellWidth: 10, halign: "center" },
-                1: { cellWidth: 18 },
-                2: { cellWidth: 12, halign: "center" },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 30 },
+                0: { cellWidth: 8, halign: "center" },
+                1: { cellWidth: 16 },
+                2: { cellWidth: 10, halign: "center" },
+                3: { cellWidth: 22 },
+                4: { cellWidth: 26 },
                 5: { cellWidth: 20 },
-                6: { cellWidth: 15, halign: "right" },
-                7: { cellWidth: 20, halign: "center" },
-                8: { cellWidth: 18, halign: "center" },
+                6: { cellWidth: 14, halign: "center" },
+                7: { cellWidth: 20 },
+                8: { cellWidth: 15, halign: "right" },
+                9: { cellWidth: 16, halign: "center" },
+                10: { cellWidth: 15, halign: "center" },
             },
             didDrawPage: (data) => {
                 doc.setFontSize(8);
@@ -563,6 +622,7 @@ function AllBookings() {
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer / MOBILE</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Route Details</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Seats & Features</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Driver / MOBILE</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
@@ -573,7 +633,7 @@ function AllBookings() {
                     <tbody className="divide-y divide-gray-100">
                         {filteredBookings.length === 0 ? (
                             <tr>
-                                <td colSpan="10" className="px-3 py-8 text-center text-gray-500">
+                                <td colSpan="11" className="px-3 py-8 text-center text-gray-500">
                                     No bookings found
                                 </td>
                             </tr>
@@ -652,6 +712,70 @@ function AllBookings() {
                                                         <span className="text-xs text-gray-600">{booking.fromCity || 'N/A'} → {booking.toCity || 'N/A'}</span>
                                                     </div>
                                                 )
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            {(booking.rideType === 'cab' || booking.role === 'cab_ride') ? (
+                                                <div className="space-y-1.5 max-w-[220px]">
+                                                    {/* Seats Display */}
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${
+                                                            booking.availableSeats === 0
+                                                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                                : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                                        }`}>
+                                                            <Users className="w-3 h-3" />
+                                                            <span>
+                                                                {booking.availableSeats !== undefined && booking.availableSeats !== null ? booking.availableSeats : '-'}
+                                                                <span className="text-gray-400 font-normal"> / </span>
+                                                                {booking.totalSeats !== undefined && booking.totalSeats !== null ? booking.totalSeats : '-'} seats
+                                                            </span>
+                                                        </span>
+                                                        {booking.totalSeats !== undefined && booking.availableSeats !== undefined && booking.totalSeats !== null && booking.availableSeats !== null && (
+                                                            <span className="text-[10px] font-medium">
+                                                                {booking.availableSeats === 0 ? (
+                                                                    <span className="text-rose-600 font-bold">Full</span>
+                                                                ) : (
+                                                                    <span className="text-gray-500">({Math.max(0, booking.totalSeats - booking.availableSeats)} booked)</span>
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Car Model & Number if available */}
+                                                    {(booking.carModel || booking.carNumber) && (
+                                                        <p className="text-[10px] text-gray-600 truncate flex items-center gap-1" title={`${booking.carModel || ''} ${booking.carNumber ? `(${booking.carNumber})` : ''}`}>
+                                                            <Car className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                                                            <span className="font-medium text-gray-700">{booking.carModel || 'Car'}</span>
+                                                            {booking.carNumber && <span className="text-gray-400">({booking.carNumber})</span>}
+                                                        </p>
+                                                    )}
+
+                                                    {/* Car Features Display */}
+                                                    {parseCarFeatures(booking.carFeatures).length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {parseCarFeatures(booking.carFeatures).map((feat, idx) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                                >
+                                                                    {feat}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-[10px] text-gray-400 italic">No features</p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    <span className="text-xs text-gray-500">Goods Transport</span>
+                                                    {(booking.totalCapacity || booking.availableCapacity) ? (
+                                                        <p className="text-[10px] text-gray-400">
+                                                            Cap: {booking.availableCapacity || 0}/{booking.totalCapacity || 0} kg
+                                                        </p>
+                                                    ) : null}
+                                                </div>
                                             )}
                                         </td>
                                         <td className="px-3 py-2">
@@ -762,6 +886,87 @@ function AllBookings() {
 
                             {selectedBooking.rideType === 'cab' ? (
                                 <>
+                                    {/* Seat & Vehicle Details Card */}
+                                    <div className="border border-gray-200 rounded-lg p-3 bg-white shadow-xs">
+                                        <h4 className="font-semibold text-gray-900 mb-2.5 text-sm flex items-center gap-2">
+                                            <Car className="w-4 h-4 text-indigo-600" />
+                                            Seat & Vehicle Information
+                                        </h4>
+                                        <div className="grid grid-cols-3 gap-2.5 bg-gray-50 p-3 rounded-lg border border-gray-100 mb-3">
+                                            <div className="bg-white p-2.5 rounded border border-gray-100 shadow-xs text-center">
+                                                <p className="text-[11px] text-gray-500">Total Seats</p>
+                                                <p className="text-lg font-bold text-gray-900">
+                                                    {selectedBooking.totalSeats !== undefined && selectedBooking.totalSeats !== null
+                                                        ? selectedBooking.totalSeats
+                                                        : 'N/A'}
+                                                </p>
+                                            </div>
+                                            <div className="bg-white p-2.5 rounded border border-gray-100 shadow-xs text-center">
+                                                <p className="text-[11px] text-gray-500">Available Seats</p>
+                                                <p className="text-lg font-bold text-green-600">
+                                                    {selectedBooking.availableSeats !== undefined && selectedBooking.availableSeats !== null
+                                                        ? selectedBooking.availableSeats
+                                                        : 'N/A'}
+                                                </p>
+                                            </div>
+                                            <div className="bg-white p-2.5 rounded border border-gray-100 shadow-xs text-center">
+                                                <p className="text-[11px] text-gray-500">Booked Seats</p>
+                                                <p className="text-lg font-bold text-blue-600">
+                                                    {selectedBooking.totalSeats !== undefined && selectedBooking.availableSeats !== undefined && selectedBooking.totalSeats !== null && selectedBooking.availableSeats !== null
+                                                        ? Math.max(0, selectedBooking.totalSeats - selectedBooking.availableSeats)
+                                                        : (selectedBooking.passengerDetails?.length || 0)}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {(selectedBooking.carModel || selectedBooking.carNumber || selectedBooking.carColor) && (
+                                            <div className="grid grid-cols-3 gap-2 text-xs mb-3 p-2 bg-slate-50 rounded border border-slate-100">
+                                                {selectedBooking.carModel && (
+                                                    <div>
+                                                        <span className="text-gray-500">Model:</span>
+                                                        <p className="font-medium text-gray-800">{selectedBooking.carModel}</p>
+                                                    </div>
+                                                )}
+                                                {selectedBooking.carNumber && (
+                                                    <div>
+                                                        <span className="text-gray-500">Reg No:</span>
+                                                        <p className="font-medium text-gray-800">{selectedBooking.carNumber}</p>
+                                                    </div>
+                                                )}
+                                                {selectedBooking.carColor && (
+                                                    <div>
+                                                        <span className="text-gray-500">Color:</span>
+                                                        <p className="font-medium text-gray-800">{selectedBooking.carColor}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <p className="text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                Car Features
+                                            </p>
+                                            {parseCarFeatures(selectedBooking.carFeatures).length > 0 ? (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {parseCarFeatures(selectedBooking.carFeatures).map((feature, idx) => (
+                                                        <span
+                                                            key={idx}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                                        >
+                                                            <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                                            {feature}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-gray-400 italic bg-gray-50 p-2 rounded">
+                                                    No special features listed for this vehicle
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div className="border border-gray-200 rounded-lg p-3">
                                         <h4 className="font-semibold text-gray-900 mb-2 text-sm flex items-center gap-2">
                                             <User className="w-4 h-4" />

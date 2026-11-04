@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use localhost for development, change to your backend IP if needed
-const API_BASE_URL = 'https://dump-and-drop.onrender.com/api/admin';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://dump-and-drop.onrender.com/api/admin';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
