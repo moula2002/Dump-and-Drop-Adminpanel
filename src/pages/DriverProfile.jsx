@@ -7,7 +7,7 @@ import {
   Eye, Truck, Package, IdCard, Wrench, Ban,
   Weight, Navigation,
   DollarSign,
-  UserCheck, UserX, Download, RefreshCw, Star
+  UserCheck, UserX, Download, RefreshCw, Star, Trash2
 } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
@@ -62,6 +62,8 @@ function DriverProfile() {
   const [showUnapproveModal, setShowUnapproveModal] = useState(false);
   const [unapproveReason, setUnapproveReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchDriverDetails();
@@ -309,6 +311,20 @@ function DriverProfile() {
     }
   };
 
+  const handleDeleteDriver = async () => {
+    setDeleting(true);
+    try {
+      await adminAPI.deleteDriver(id);
+      toast.success('Driver deleted successfully');
+      navigate('/drivers');
+    } catch (error) {
+      console.error('Delete driver error:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete driver');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const hasValue = (value) => {
     return value !== undefined && value !== null && value !== '' && value !== 'N/A';
   };
@@ -394,6 +410,13 @@ function DriverProfile() {
               Unapprove Driver
             </button>
           )}
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Driver
+          </button>
         </div>
       </div>
 
@@ -713,6 +736,55 @@ function DriverProfile() {
               <button onClick={handleUnapproveDriver} disabled={processing} className="flex-1 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 disabled:opacity-50 flex items-center justify-center gap-2">
                 {processing ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <Ban className="w-4 h-4" />}
                 Confirm Unapprove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Driver Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Driver</h3>
+                <p className="text-xs text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to permanently delete driver <span className="font-semibold text-gray-900">{getFullName()}</span>? All driver profiles, documents, vehicle details, and account data will be permanently removed.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteDriver}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete Driver
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Eye, User, Phone, Calendar, Download, RefreshCw, Users as UsersIcon, UserCheck, UserX, X } from 'lucide-react';
+import { Search, Eye, User, Phone, Calendar, Download, RefreshCw, Users as UsersIcon, UserCheck, UserX, X, Trash2 } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
@@ -44,6 +44,8 @@ function Users() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [deleteModalUser, setDeleteModalUser] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -193,6 +195,24 @@ function Users() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!deleteModalUser) return;
+    const userId = deleteModalUser._id || deleteModalUser.id || deleteModalUser.userId;
+    try {
+      setDeleting(true);
+      await adminAPI.deleteUser(userId);
+      toast.success('Customer deleted successfully');
+      setUsers(prev => prev.filter(u => (u._id || u.id || u.userId) !== userId));
+      setFilteredUsers(prev => prev.filter(u => (u._id || u.id || u.userId) !== userId));
+      setDeleteModalUser(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete customer');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const stats = {
     total: filteredUsers.length,
     active: filteredUsers.filter(u => u.isAdminVerified !== false).length,
@@ -304,7 +324,10 @@ function Users() {
                       </span>
                     </td>
                     <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => handleViewUser(user)} className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg"><Eye className="w-4 h-4" /></button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleViewUser(user)} title="View Details" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Eye className="w-4 h-4" /></button>
+                        <button onClick={() => setDeleteModalUser(user)} title="Delete Customer" className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -313,6 +336,56 @@ function Users() {
           </table>
         </div>
       </div>
+    
+      {/* Delete Confirmation Modal */}
+      {deleteModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Customer</h3>
+                <p className="text-xs text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to permanently delete customer <span className="font-semibold text-gray-900">{deleteModalUser.name || 'this customer'}</span> (Phone: <span className="font-medium text-gray-800">{deleteModalUser.phone || 'N/A'}</span>)? All associated profile data will be permanently removed.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteModalUser(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteUser}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete Customer
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

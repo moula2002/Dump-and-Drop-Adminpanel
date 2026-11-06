@@ -49,12 +49,14 @@ export const adminAPI = {
   },
   updateUserStatus: (userId, status, reason = '') =>
     api.put(`/users/${userId}/status`, { status, reason }),
+  deleteUser: (userId) => api.delete(`/users/${userId}`),
 
   // Drivers
   getDrivers: () => api.get('/drivers'),
   getDriverById: (driverId) => api.get(`/drivers/${driverId}`),
   verifyDriver: (driverId, status, reason = '') =>
     api.put(`/drivers/${driverId}/verify`, { status, reason }),
+  deleteDriver: (driverId) => api.delete(`/drivers/${driverId}`),
 
   // Rides
   getRides: (page = 1, limit = 10, filters = {}) =>
@@ -74,18 +76,10 @@ export const adminAPI = {
   updateVehicle: (id, data) => Promise.resolve({ data: { success: true } }),
   deleteVehicle: (id) => Promise.resolve({ data: { success: true } }),
 
-  // Payouts (mock)
-  getPayouts: () => Promise.resolve({ data: { payouts: [] } }),
-  processPayout: (id) => Promise.resolve({ data: { success: true } }),
-
-  // Reports (mock)
-  generateReport: (type, start, end) => Promise.resolve({ data: {} }),
-  // Add these to your adminAPI object in api.js
   // Driver Verification - FIXED
   getPendingVerifications: () => api.get('/verifications/pending'),
   getVerificationDetails: (driverId) => api.get(`/verifications/${driverId}`),
   processVerification: (driverId, action, data) => {
-    // Ensure driverId is a string, not an object
     const id = typeof driverId === 'string' ? driverId : (driverId._id || driverId.userId);
     console.log(`Sending request to: /verifications/${id}/${action}`);
     return api.post(`/verifications/${id}/${action}`, data);
@@ -127,7 +121,6 @@ export const adminAPI = {
     const queryString = new URLSearchParams(params).toString();
     return api.get(`/bookings${queryString ? `?${queryString}` : ''}`);
   },
-  // Cancel booking
   cancelBooking: (id, data) => api.put(`/bookings/${id}/cancel`, data),
   exportBookings: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Eye, CheckCircle, XCircle, User, Car, Clock, Download, RefreshCw, Users, UserCheck, UserX, TrendingUp, X } from 'lucide-react';
+import { Search, Eye, CheckCircle, XCircle, User, Car, Clock, Download, RefreshCw, Users, UserCheck, UserX, TrendingUp, X, Trash2 } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
@@ -51,6 +51,8 @@ function Drivers() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('approved');
+  const [deleteModalDriver, setDeleteModalDriver] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchDrivers();
@@ -233,6 +235,24 @@ function Drivers() {
     navigate(`/drivers/${driverId}`);
   };
 
+  const handleDeleteDriver = async () => {
+    if (!deleteModalDriver) return;
+    const driverId = deleteModalDriver.userId?._id || deleteModalDriver.userId || deleteModalDriver._id;
+    try {
+      setDeleting(true);
+      await adminAPI.deleteDriver(driverId);
+      toast.success('Driver deleted successfully');
+      setDrivers(prev => prev.filter(d => (d.userId?._id || d.userId || d._id) !== driverId && d._id !== deleteModalDriver._id));
+      setFilteredDrivers(prev => prev.filter(d => (d.userId?._id || d.userId || d._id) !== driverId && d._id !== deleteModalDriver._id));
+      setDeleteModalDriver(null);
+    } catch (error) {
+      console.error('Error deleting driver:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete driver');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     if (status === 'approved') {
       return { color: 'bg-green-100 text-green-700', icon: CheckCircle, text: 'Approved' };
@@ -390,10 +410,19 @@ function Drivers() {
                       <p className="text-xs text-gray-500">Total Earnings</p>
                       <p className="text-lg font-bold text-gray-900">{formatFullNumber(driver.totalEarnings || 0)}</p>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); handleViewDriver(driver); }} className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      View Details
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={(e) => { e.stopPropagation(); handleViewDriver(driver); }} className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition flex items-center gap-1">
+                        <Eye className="w-4 h-4" />
+                        View Details
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteModalDriver(driver); }}
+                        title="Delete Driver"
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -401,6 +430,56 @@ function Drivers() {
           })
         )}
       </div>
+    
+      {/* Delete Driver Confirmation Modal */}
+      {deleteModalDriver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Driver</h3>
+                <p className="text-xs text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to permanently delete driver <span className="font-semibold text-gray-900">{deleteModalDriver.displayName || deleteModalDriver.fullName || 'this driver'}</span> (Phone: <span className="font-medium text-gray-800">{deleteModalDriver.displayPhone || 'N/A'}</span>)? This will permanently remove the driver profile, documents, and account.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteModalDriver(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteDriver}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete Driver
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
